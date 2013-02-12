@@ -56,7 +56,7 @@ var tab = new BrowserTab({
   window: window, // override window (helpful when mocking in unit tests)
   document: document, // override document (helpful when mocking in unit tests)
   localStorage: localStorage, // override localStorage (helpful when mocking in unit tests)
-  idStorageKey: "_BrowserTabIDStorageKey" // change storage namespace for coordinating "primary" tab
+  storageNamespace: "_BrowserTabStorageNamespace" // change storage namespace for coordinating "primary" tab
 })
 ```
 
