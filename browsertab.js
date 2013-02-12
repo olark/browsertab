@@ -271,8 +271,8 @@
   })(BrowserTab.prototype);
 
   // Export for CommonJS.
-  if (this.module && this.module.exports) {
-    this.module.exports = BrowserTab;
+  if (typeof module !== "undefined") {
+    module.exports = BrowserTab;
 
   // Export for AMD loaders.
   } else if (this.define && this.define.amd) {
