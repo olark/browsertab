@@ -8,7 +8,7 @@
   * `options.window` window object (defaults to global window)
   * `options.document` document object (defaults to global document)
   * `options.localStorage` localStorage to use (defaults to global localStorage)
-  * `options.idStorageKey` namespace for localStorage to coordinate "primary" tabs (defaults to "_BrowserTabIDStorageKey")
+  * `options.storageNamespace` namespace for localStorage to coordinate "primary" tabs (defaults to "_BrowserTabStorageNamespace")
   */
   function BrowserTab(options) {
     var self = this;
@@ -20,7 +20,7 @@
 
     // Only allow one tab to be "primary" per domain.
     this._localStorage = options.localStorage || this._win.localStorage;
-    this._idStorageKey = options.idStorageKey || "_BrowserTabIDStorageKey";
+    this._storageNamespace = options.storageNamespace || "_BrowserTabStorageNamespace";
     this._id = ("" + Math.random() + Math.random()).replace(/\./g, "");
     function release() {
       self._releasePrimary();
@@ -72,7 +72,7 @@
           window.console.warn("localStorage is required to use the primary() property");
         }
       }
-      return this._localStorage.getItem(this._idStorageKey) === this._id;
+      return this._localStorage.getItem(this._storageNamespace) === this._id;
     };
 
     // Returns true when this tab is hidden from view.
@@ -164,7 +164,7 @@
         // http://html5doctor.com/storing-data-the-simple-html5-way-and-a-few-tricks-you-might-not-have-known/
         this._listen(this._win, "storage", function(event) {
           event = event || window.event;
-          if (event.key === self._idStorageKey) {
+          if (event.key === self._storageNamespace) {
             callback();
           }
         });
@@ -173,22 +173,22 @@
 
     p._makePrimary = function() {
       if (this._localStorage) {
-        this._localStorage.setItem(this._idStorageKey, this._id);
+        this._localStorage.setItem(this._storageNamespace, this._id);
       }
     };
 
     p._releasePrimary = function() {
       if (this._localStorage) {
-        var primaryTabID = this._localStorage.getItem(this._idStorageKey);
+        var primaryTabID = this._localStorage.getItem(this._storageNamespace);
         if (primaryTabID === this._id) {
-          this._localStorage.removeItem(this._idStorageKey);
+          this._localStorage.removeItem(this._storageNamespace);
         }
       }
     };
 
     p._anyTabsPrimary = function() {
       if (this._localStorage) {
-        var primaryTabID = this._localStorage.getItem(this._idStorageKey);
+        var primaryTabID = this._localStorage.getItem(this._storageNamespace);
         return primaryTabID !== "undefined";
 
       // When no localStorage available, fail open.
