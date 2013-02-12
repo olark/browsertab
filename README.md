@@ -14,13 +14,6 @@ can be tricky:
 * `BrowserTab.hidden()` true when the current tab is hidden from the visitor
 * `BrowserTab.primary()` true when the current tab is the most-recently-used tab
 
-To accomplish this, BrowserTab uses the
-[Page Visibility API](http://www.nczonline.net/blog/2011/08/09/introduction-to-the-page-visibility-api/)
-(falling back to `onblur` and `onfocus` and other heuristics) to determine
-which tab is "hidden", along with
-[Storage Events](http://html5doctor.com/storing-data-the-simple-html5-way-and-a-few-tricks-you-might-not-have-known/)
-to coordinate which tab is "primary".
-
 # Usage
 
 In the browser, just include the module with `<script src="browsertab.js"></script>`.
@@ -63,7 +56,7 @@ var tab = new BrowserTab({
   window: window, // override window (helpful when mocking in unit tests)
   document: document, // override document (helpful when mocking in unit tests)
   localStorage: localStorage, // override localStorage (helpful when mocking in unit tests)
-  idStorageKey: "_BrowserTabIDStorageKey" // change the storage namespace for coordinating the "primary" tab
+  idStorageKey: "_BrowserTabIDStorageKey" // change storage namespace for coordinating the "primary" tab
 })
 ```
 
