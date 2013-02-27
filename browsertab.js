@@ -305,7 +305,7 @@
     };
 
     p._primaryChanged = function() {
-      return this._previousPrimary !== this._currentPrimary);
+      return this._previousPrimary !== this._currentPrimary;
     };
 
   })(BrowserTab.prototype);
