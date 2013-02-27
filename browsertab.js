@@ -7,8 +7,8 @@
 
   * `options.window` window object (defaults to global window)
   * `options.document` document object (defaults to global document)
-  * `options.localStorage` localStorage to use (defaults to global localStorage)
-  * `options.storageNamespace` namespace for localStorage to coordinate "primary" tabs (defaults to "_BrowserTabStorageNamespace")
+  * `options.localStorage` localStorage to use (defaults to global localStorage if exists, otherwise falls back to a cookie store)
+  * `options.storageNamespace` namespace for store to coordinate "primary" tabs (defaults to "_BrowserTabStorageNamespace")
   */
   function BrowserTab(options) {
     var self = this;
@@ -19,9 +19,13 @@
     this._prefixes = ["webkit", "moz", "ms", "o"];
 
     // Only allow one tab to be "primary" per domain.
-    this._localStorage = options.localStorage || this._win.localStorage;
+    this.store = options.localStorage || this._win.localStorage || new BrowserTab.CookieStore(this._doc);
     this._storageNamespace = options.storageNamespace || "_BrowserTabStorageNamespace";
     this._id = ("" + Math.random() + Math.random()).replace(/\./g, "");
+
+    // initialize array storing callbacks to be fired if a tab becomes a primary again
+    this.switchedPrimaryCallbacks = [];
+
     function release() {
       self._releasePrimary();
     }
@@ -38,7 +42,7 @@
 
     // Initialize primary state.
     if (!this.hidden() || !this._anyTabsPrimary()) {
-      this._makePrimary();
+      this._makePrimary(true);
     }
   }
 
@@ -62,17 +66,36 @@
       return globalInstance.on.apply(globalInstance, arguments);
     };
 
+    // http://www.quirksmode.org/js/cookies.html
+    BrowserTab.CookieStore = function(doc) {
+      this.doc = doc;
+    };
+
+    BrowserTab.CookieStore.prototype.getItem = function(name) {
+      var nameEQ = name + "=";
+      var ca = this.doc.cookie.split(';');
+      for(var i=0;i < ca.length;i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+      }
+      return null;
+    };
+
+    BrowserTab.CookieStore.prototype.setItem = function(name, value) {
+      this.doc.cookie = name+"="+value+"; path=/";
+    };
+
+    BrowserTab.CookieStore.prototype.removeItem = function(name) {
+      this.setItem(name,"");
+    }
+
     // Returns true when this is the most-recently-used tab.
     p.primary = function() {
       if (arguments.length > 0) {
         throw new Error("'primary' property is not settable");
       }
-      if (!this._localStorage) {
-        if (window.console && window.console.warn) {
-          window.console.warn("localStorage is required to use the primary() property");
-        }
-      }
-      return this._localStorage.getItem(this._storageNamespace) === this._id;
+      return this.store.getItem(this._storageNamespace) === this._id;
     };
 
     // Returns true when this tab is hidden from view.
@@ -89,6 +112,7 @@
 
     // Listens for changes to the hidden and primary attributes.
     p.on = function(events, callback) {
+      var self = this;
       events = events.split(/\s+/);
       for (var i=0; i < events.length; i++) {
         var event = events[i];
@@ -98,6 +122,14 @@
             break;
           case "change:primary":
             this._listenForPrimaryChange(callback);
+            break;
+          case "change:hiddenToActive":
+            this._listenForVisibilityChange(function(){
+              if (!self._blurred) callback();
+            });
+            break;
+          case "change:switchedBackAsPrimary":
+            this.switchedPrimaryCallbacks.push(callback);
             break;
           default:
             throw new Error("invalid event '" + event + "'");
@@ -160,7 +192,7 @@
 
     p._listenForPrimaryChange = function(callback) {
       var self = this;
-      if (this._localStorage) {
+      if (this._win.localStorage) {
         // http://html5doctor.com/storing-data-the-simple-html5-way-and-a-few-tricks-you-might-not-have-known/
         this._listen(this._win, "storage", function(event) {
           event = event || window.event;
@@ -171,30 +203,27 @@
       }
     };
 
-    p._makePrimary = function() {
-      if (this._localStorage) {
-        this._localStorage.setItem(this._storageNamespace, this._id);
-      }
-    };
-
-    p._releasePrimary = function() {
-      if (this._localStorage) {
-        var primaryTabID = this._localStorage.getItem(this._storageNamespace);
-        if (primaryTabID === this._id) {
-          this._localStorage.removeItem(this._storageNamespace);
+    p._makePrimary = function(initialize) {
+      this._previousPrimary = this.store.getItem(this._storageNamespace);
+      this.store.setItem(this._storageNamespace, this._id);
+      // is a new primary being set, and is this not when BrowserTab is initializing
+      if (!initialize && this._primaryChanged()) {
+        for (var i=0; i < this.switchedPrimaryCallbacks.length; i++) {
+          setTimeout(this.switchedPrimaryCallbacks[i], 0);
         }
       }
     };
 
-    p._anyTabsPrimary = function() {
-      if (this._localStorage) {
-        var primaryTabID = this._localStorage.getItem(this._storageNamespace);
-        return primaryTabID !== "undefined";
-
-      // When no localStorage available, fail open.
-      } else {
-        return false;
+    p._releasePrimary = function() {
+      var primaryTabID = this.store.getItem(this._storageNamespace);
+      if (primaryTabID === this._id) {
+        this.store.removeItem(this._storageNamespace);
       }
+    };
+
+    p._anyTabsPrimary = function() {
+        var primaryTabID = this.store.getItem(this._storageNamespace);
+        return primaryTabID !== "undefined" && !!primaryTabID;
     };
 
     p._initializeWithVisibility = function() {
@@ -205,11 +234,11 @@
       function syncPrimary() {
         self._blurred = self.hidden();
         if (!self.hidden()) {
-          self._makePrimary();
+          self._makePrimary(false);
         }
       }
 
-      syncPrimary();
+      this._makePrimary(true)
       this._listenForVisibilityChange(syncPrimary);
     };
 
@@ -228,15 +257,17 @@
       }
 
       function blur() {
+        self._previouslyBlurred = self._blurred;
         self._blurred = true;
         self._uncertain = false;
         triggerBlurChangeCallbacks();
       }
 
       function focus() {
+        self._previouslyBlurred = self._blurred;
         self._blurred = false;
         self._uncertain = false;
-        self._makePrimary();
+        self._makePrimary(false); 
         triggerBlurChangeCallbacks();
       }
 
@@ -266,6 +297,14 @@
           blur();
         }
       });
+    };
+
+    p._stateChanged = function() {
+      return this._previouslyBlurred !== this._blurred;
+    };
+
+    p._primaryChanged = function() {
+      return this._previousPrimary !== this._id;
     };
 
   })(BrowserTab.prototype);
