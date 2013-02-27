@@ -42,7 +42,7 @@
 
     // Initialize primary state.
     if (!this.hidden() || !this._anyTabsPrimary()) {
-      this._makePrimary(true);
+      this._makePrimary();
     }
   }
 
@@ -203,12 +203,12 @@
       }
     };
 
-    p._makePrimary = function(initialize) {
+    p._makePrimary = function() {
       this._previousPrimary = this.store.getItem(this._storageNamespace);
       this.store.setItem(this._storageNamespace, this._id);
       this._currentPrimary = this._id;
-      // is a new primary being set, and is this not when BrowserTab is initializing
-      if (!initialize && this._primaryChanged()) {
+      // if a new primary being set after initialization
+      if (this._primaryChanged()) {
         for (var i=0; i < this.switchedPrimaryCallbacks.length; i++) {
           setTimeout(this.switchedPrimaryCallbacks[i], 0);
         }
@@ -235,11 +235,11 @@
       function syncPrimary() {
         self._blurred = self.hidden();
         if (!self.hidden()) {
-          self._makePrimary(false);
+          self._makePrimary();
         }
       }
 
-      this._makePrimary(true)
+      this._makePrimary()
       this._listenForVisibilityChange(syncPrimary);
     };
 
@@ -268,7 +268,7 @@
         self._previouslyBlurred = self._blurred;
         self._blurred = false;
         self._uncertain = false;
-        self._makePrimary(false); 
+        self._makePrimary(); 
         triggerBlurChangeCallbacks();
       }
 
