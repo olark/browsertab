@@ -206,6 +206,7 @@
     p._makePrimary = function(initialize) {
       this._previousPrimary = this.store.getItem(this._storageNamespace);
       this.store.setItem(this._storageNamespace, this._id);
+      this._currentPrimary = this._id;
       // is a new primary being set, and is this not when BrowserTab is initializing
       if (!initialize && this._primaryChanged()) {
         for (var i=0; i < this.switchedPrimaryCallbacks.length; i++) {
@@ -304,7 +305,7 @@
     };
 
     p._primaryChanged = function() {
-      return this._previousPrimary !== this._id;
+      return this._previousPrimary !== this._currentPrimary);
     };
 
   })(BrowserTab.prototype);
