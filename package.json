@@ -1,7 +1,7 @@
 {
   "name": "browsertab",
   "description": "Track which tabs are visible and most-recently-used.",
-  "version": "0.0.2",
+  "version": "0.0.3",
 
   "author": {
     "name": "Matt Pizzimenti",
