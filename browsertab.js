@@ -219,7 +219,8 @@
       var self = this;
       this._blurred = false;
       this._uncertain = true;
-      this._blurChangeCallbacks = blurChangeCallbacks = [];
+      this._blurChangeCallbacks = [];
+      var blurChangeCallbacks = this._blurChangeCallbacks;
 
       function triggerBlurChangeCallbacks() {
         for (var i=0; i < blurChangeCallbacks.length; i++) {
