@@ -3,10 +3,16 @@
   "description": "Track which tabs are visible and most-recently-used.",
   "version": "0.0.3",
 
-  "author": {
-    "name": "Matt Pizzimenti",
-    "url": "https://github.com/mjpizz"
-  },
+  "contributors": [
+    {
+      "name": "Matt Pizzimenti",
+      "url": "https://github.com/mjpizz"
+    },
+    {
+      "name": "Nick Crohn",
+      "url": "https://github.com/ncrohn"
+    }
+  ],
 
   "main": "./browsertab",
   "url": "https://github.com/olark/browsertab",
